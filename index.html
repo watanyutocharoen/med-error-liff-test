@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LIFF ทดสอบ</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+body{font-family:system-ui,'Noto Sans Thai',Tahoma,sans-serif;margin:0;padding:16px;background:#f2f4f9;color:#14203f;line-height:1.5}
+.c{max-width:520px;margin:0 auto;background:#fff;border-radius:16px;padding:20px;box-shadow:0 8px 24px -14px rgba(20,32,63,.3)}
+h1{font-size:20px;margin:0 0 4px} p{margin:6px 0;color:#5b6683;font-size:14px}
+input,button{font:inherit;width:100%;padding:12px 14px;border-radius:12px;border:1px solid #d9deea;margin-top:8px;box-sizing:border-box}
+button{background:#8a1f35;color:#fff;border:0;font-weight:600;cursor:pointer} button.g{background:#fff;color:#14203f;border:1px solid #d9deea}
+button:disabled{opacity:.5}
+table{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px} td{padding:6px 4px;border-bottom:1px solid #eceff6;vertical-align:top} td:first-child{color:#5b6683;width:46%}
+.ok{color:#1e7a4c;font-weight:600}.bad{color:#b3261e;font-weight:600}
+pre{white-space:pre-wrap;background:#f2f4f9;border-radius:10px;padding:10px;font-size:12px;margin:8px 0 0}
+</style></head><body><div class="c">
+<h1>ทดสอบส่งข้อความเข้ากลุ่ม LINE</h1>
+<p>หน้านี้ใช้ทดสอบว่าเมื่อกดปุ่ม ข้อความจะเด้งเข้าแชตที่เปิดลิงก์มาหรือไม่ ไม่เก็บข้อมูลใดๆ</p>
+<div id="setup" hidden>
+  <p><b>ใส่ LIFF ID</b> (ได้จาก LINE Developers Console)</p>
+  <input id="lid" placeholder="เช่น 1234567890-AbCdEfGh" autocomplete="off">
+  <button id="saveId">บันทึกและเริ่มทดสอบ</button>
+</div>
+<div id="run" hidden>
+  <table id="info"></table>
+  <button id="send" disabled>ส่งข้อความทดสอบเข้าแชตนี้</button>
+  <button id="copy" class="g">คัดลอกข้อความ (ใช้เมื่อส่งไม่ได้)</button>
+  <button id="reset" class="g">เปลี่ยน LIFF ID</button>
+  <div id="res"></div>
+</div>
+</div>
+<script>
+const $=s=>document.querySelector(s);
+const MSG='🔔 ทดสอบ Med Error Desk: ข้อความนี้ส่งจากหน้าทดสอบ '+new Date().toLocaleTimeString('th-TH');
+let id=null;try{id=localStorage.getItem('liffId')}catch(e){}
+function row(a,b,cls){return `<tr><td>${a}</td><td class="${cls||''}">${b}</td></tr>`}
+function show(msg,cls){$('#res').innerHTML=`<pre class="${cls||''}">${msg}</pre>`}
+if(!id){$('#setup').hidden=false;$('#saveId').onclick=()=>{const v=$('#lid').value.trim();if(!v)return;try{localStorage.setItem('liffId',v)}catch(e){}location.reload()}}
+else{
+  $('#run').hidden=false;
+  $('#reset').onclick=()=>{try{localStorage.removeItem('liffId')}catch(e){}location.reload()};
+  $('#copy').onclick=async()=>{try{await navigator.clipboard.writeText(MSG);show('คัดลอกแล้ว นำไปวางในกลุ่มได้','ok')}catch(e){show(MSG)}};
+  liff.init({liffId:id}).then(()=>{
+    const ctx=liff.getContext()||{};
+    const inClient=liff.isInClient(), can=liff.isApiAvailable('sendMessages');
+    let h=row('เปิดในแอป LINE',inClient?'ใช่':'ไม่ใช่ (ส่งไม่ได้)',inClient?'ok':'bad')+row('ประเภทแชตที่เปิดมา',ctx.type||'-')+row('LIFF API sendMessages',can?'พร้อมใช้':'ไม่พร้อม',can?'ok':'bad')+row('ล็อกอิน LINE',liff.isLoggedIn()?'แล้ว':'ยัง',liff.isLoggedIn()?'ok':'bad');
+    $('#info').innerHTML=h;
+    if(!liff.isLoggedIn()&&!inClient){show('กรุณาล็อกอิน LINE แล้วลองใหม่');liff.login();return}
+    $('#send').disabled=!can;
+    $('#send').onclick=async()=>{$('#send').disabled=true;
+      try{await liff.sendMessages([{type:'text',text:MSG}]);show('ส่งสำเร็จ ลองดูในแชตว่าข้อความเด้งหรือไม่','ok')}
+      catch(e){show('ส่งไม่สำเร็จ\nรหัส: '+(e.code||'-')+'\n'+(e.message||e)+'\n\nแจ้งผลนี้กลับมาให้ผมได้เลข','bad')}
+      $('#send').disabled=false}
+  }).catch(e=>show('เริ่ม LIFF ไม่ได้: '+(e.message||e)+'\nตรวจสอบ LIFF ID และ Endpoint URL','bad'));
+}
+</script></body></html>
