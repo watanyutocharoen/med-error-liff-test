@@ -195,6 +195,7 @@ const API='https://script.google.com/macros/s/AKfycbw3hFvxTwTuazEYueY8nwne-D_YWk
 const LIFF_ID='2011941598-9Ya6BMu4';
 const APP_LINK='https://liff.line.me/'+LIFF_ID;
 const REMOTE=!!API;
+const FID={}; // photo id -> Drive file id (สำหรับส่งรูปเข้า LINE)
 async function api(a,body){const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(Object.assign({a},body))});const j=await r.json();if(j.error)throw new Error(j.error);return j}
 async function apiGet(q){const r=await fetch(API+'?'+q);const j=await r.json();if(j.error)throw new Error(j.error);return j}
 const toB64=b=>new Promise((res,rej)=>{const f=new FileReader();f.onload=()=>res(String(f.result).split(',')[1]);f.onerror=rej;f.readAsDataURL(b)});
@@ -292,7 +293,7 @@ const MEM=new Map();let _db=null;
 function idb(){return _db||(_db=new Promise((res,rej)=>{try{const q=indexedDB.open('mederr-photos',1);q.onupgradeneeded=()=>q.result.createObjectStore('p');q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)}catch(e){rej(e)}}))}
 async function ph(op,id,blob){
   if(REMOTE){
-    if(op==='put'){await phL('put',id,blob);await api('photo',{id,b64:await toB64(blob)});return}
+    if(op==='put'){await phL('put',id,blob);const j=await api('photo',{id,b64:await toB64(blob)});if(j.fid)FID[id]=j.fid;return}
     if(op==='get'){let b=await phL('get',id);if(b)return b;try{const j=await apiGet('a=photo&id='+encodeURIComponent(id));b=fromB64(j.b64);await phL('put',id,b);return b}catch(e){return null}}
     return phL(op,id)
   }
@@ -433,7 +434,7 @@ async function submit(){
     if(REMOTE)await api('add',{rec});
   }catch(e){toast('บันทึกไม่สำเร็จ: '+(e.message||e)+' (ลองกดอีกครั้ง)');window._busy=false;if(sb){sb.disabled=false;sb.textContent=sb.dataset.t}return}
   S.records.push(rec);save();toast('บันทึกรายงานแล้ว');
-  window._busy=false;notifyLine(rec);
+  window._busy=false;notifyLine(rec,pids.map(p=>FID[p]).filter(Boolean));
   const u=F.unit,t=F.etype,rp=F.reporter;F=freshF();F.unit=u;F.etype=t;F.reporter=rp;drawDyn();window.scrollTo({top:0})
 }
 
@@ -525,8 +526,20 @@ function viewMonth(){
   $('#gDoc').onclick=()=>run($('#gDoc'),makeDocx);$('#gPpt').onclick=()=>run($('#gPpt'),makePptx);
 }
 async function run(btn,fn){const t=btn.textContent;btn.disabled=true;btn.textContent='กำลังสร้างไฟล์...';try{await fn()}catch(e){console.error(e);toast('สร้างไฟล์ไม่สำเร็จ: '+(e.message||e))}btn.disabled=false;btn.textContent=t}
+
+function showExt(){
+  const d=document.createElement('div');d.setAttribute('role','dialog');
+  d.style.cssText='position:fixed;left:50%;bottom:16px;transform:translateX(-50%);width:min(460px,calc(100% - 24px));background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:14px 16px;z-index:60;font-size:14px';
+  d.innerHTML='<div style="margin-bottom:10px">แอป LINE ดาวน์โหลดไฟล์ไม่ได้ กดปุ่มด้านล่างเพื่อเปิดหน้านี้ใน Chrome/Safari แล้วกดสร้างไฟล์ซ้ำอีกครั้ง (ไฟล์จะอยู่ในโฟลเดอร์ ดาวน์โหลด)</div><div style="display:flex;gap:8px"><button class="btn" id="exOpen" style="flex:1">เปิดในเบราว์เซอร์</button><button class="btn" id="exX">ปิด</button></div>';
+  document.body.appendChild(d);$('#exX',d).onclick=()=>d.remove();
+  $('#exOpen',d).onclick=()=>{try{liff.openWindow({url:location.origin+location.pathname,external:true})}catch(e){toast('เปิดไม่ได้ ลองคัดลอกลิงก์ไปเปิดใน Chrome')}d.remove()};
+}
 async function saveFile(name,blob){
-  const dl=await window.claude?.use?.('downloads');if(!dl){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},4000);toast('ดาวน์โหลดไฟล์แล้ว');return}
+  const dl=await window.claude?.use?.('downloads');
+  if(!dl&&liffOK&&liff.isInClient()){
+    try{const f=new File([blob],name,{type:blob.type||'application/octet-stream'});if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:name});toast('ส่งไฟล์แล้ว');return}}catch(e){if(e&&e.name==='AbortError')return}
+    showExt();return}
+  if(!dl){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},4000);toast('ดาวน์โหลดไฟล์แล้ว');return}
   try{await dl.save({filename:name,data:blob});toast('บันทึกไฟล์แล้ว')}catch(e){if(e&&e.code!=='declined')toast('บันทึกไฟล์ไม่ได้ ('+(e.code||'error')+')')}
 }
 
@@ -677,14 +690,28 @@ async function initLiff(){
 }
 const canSend=()=>liffOK&&liff.isInClient()&&['utou','group','room'].includes(liffCtx);
 function lineMsg(r){
-  const e=ET[r.etype];const L=['🔔 Med Error ใหม่',`${e.en} (${e.th}) · ${r.unit}`,`ชนิด: ${r.sub}`];
+  const e=ET[r.etype];const L=['🔔 Med Error ใหม่',`${e.en} (${e.th})`,`หน่วย: ${r.unit}`,`ชนิด: ${r.sub}`];
+  if(r.hn)L.push('HN: '+r.hn);
+  if(r.doctor)L.push('แพทย์: '+r.doctor);
+  if(r.actor)L.push('ผู้กระทำ: '+r.actor+(r.actorRole?' ('+r.actorRole+')':''));
+  if(r.ward)L.push('Ward: '+r.ward);
   if(r.level)L.push('ระดับ: '+r.level);
-  if(r.detail)L.push('รายละเอียด: '+(r.detail.length>90?r.detail.slice(0,90)+'…':r.detail));
-  L.push(`ผู้รายงาน: ${r.reporter}`,`วันที่ ${fmtDate(r.d)}`);return L.join('\n')}
-async function notifyLine(r){
+  if(r.detail)L.push('รายละเอียด: '+r.detail);
+  if(r.fix)L.push('การแก้ไข: '+r.fix);
+  L.push(`ผู้รายงาน: ${r.reporter}`,`วันที่: ${fmtDate(r.d)}`);
+  if(r.photos&&r.photos.length)L.push('รูป: '+r.photos.length+' รูป');
+  return L.join('\n')}
+async function notifyLine(r,fids=[]){
   const msg=lineMsg(r);
+  const imgs=fids.map(f=>{const u='https://lh3.googleusercontent.com/d/'+f+'=w1600';return{type:'image',originalContentUrl:u,previewImageUrl:'https://lh3.googleusercontent.com/d/'+f+'=w400'}});
   if(canSend()){
-    try{await liff.sendMessages([{type:'text',text:msg}]);toast('ส่งแจ้งเตือนเข้ากลุ่ม LINE แล้ว');return}catch(e){console.warn(e)}
+    try{
+      const all=[{type:'text',text:msg},...imgs];
+      for(let i=0;i<all.length;i+=5)await liff.sendMessages(all.slice(i,i+5));
+      toast('ส่งแจ้งเตือนเข้ากลุ่ม LINE แล้ว');return
+    }catch(e){console.warn(e);
+      try{await liff.sendMessages([{type:'text',text:msg}]);toast('ส่งข้อความแล้ว แต่ส่งรูปไม่สำเร็จ');return}catch(e2){console.warn(e2)}
+    }
   }
   showCopy(msg,canSend()?'ส่งเข้ากลุ่มอัตโนมัติไม่สำเร็จ':'ถ้าเปิดแอปจากลิงก์ในกลุ่ม LINE ข้อความจะส่งเข้ากลุ่มให้เอง')
 }
