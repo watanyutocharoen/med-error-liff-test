@@ -41,14 +41,14 @@ else{
   $('#copy').onclick=async()=>{try{await navigator.clipboard.writeText(MSG);show('คัดลอกแล้ว นำไปวางในกลุ่มได้','ok')}catch(e){show(MSG)}};
   liff.init({liffId:id}).then(()=>{
     const ctx=liff.getContext()||{};
-    const inClient=liff.isInClient(), can=liff.isApiAvailable('sendMessages');
-    let h=row('เปิดในแอป LINE',inClient?'ใช่':'ไม่ใช่ (ส่งไม่ได้)',inClient?'ok':'bad')+row('ประเภทแชตที่เปิดมา',ctx.type||'-')+row('LIFF API sendMessages',can?'พร้อมใช้':'ไม่พร้อม',can?'ok':'bad')+row('ล็อกอิน LINE',liff.isLoggedIn()?'แล้ว':'ยัง',liff.isLoggedIn()?'ok':'bad');
+    const inClient=liff.isInClient(), can=inClient&&['utou','group','room'].includes(ctx.type);
+    let h=row('เปิดในแอป LINE',inClient?'ใช่':'ไม่ใช่ (ส่งไม่ได้)',inClient?'ok':'bad')+row('ประเภทแชตที่เปิดมา',ctx.type||'-')+row('ส่งข้อความเข้าแชตได้',can?'น่าจะได้ (กดทดสอบ)':'ไม่ (ต้องเปิดจากแชต/กลุ่ม)',can?'ok':'bad')+row('ล็อกอิน LINE',liff.isLoggedIn()?'แล้ว':'ยัง',liff.isLoggedIn()?'ok':'bad');
     $('#info').innerHTML=h;
     if(!liff.isLoggedIn()&&!inClient){show('กรุณาล็อกอิน LINE แล้วลองใหม่');liff.login();return}
-    $('#send').disabled=!can;
+    $('#send').disabled=false;
     $('#send').onclick=async()=>{$('#send').disabled=true;
       try{await liff.sendMessages([{type:'text',text:MSG}]);show('ส่งสำเร็จ ลองดูในแชตว่าข้อความเด้งหรือไม่','ok')}
-      catch(e){show('ส่งไม่สำเร็จ\nรหัส: '+(e.code||'-')+'\n'+(e.message||e)+'\n\nแจ้งผลนี้กลับมาให้ผมได้เลข','bad')}
+      catch(e){show('ส่งไม่สำเร็จ\nรหัส: '+(e.code||'-')+'\n'+(e.message||e)+'\n\nแจ้งผลนี้กลับมาให้ผมได้เลย','bad')}
       $('#send').disabled=false}
   }).catch(e=>show('เริ่ม LIFF ไม่ได้: '+(e.message||e)+'\nตรวจสอบ LIFF ID และ Endpoint URL','bad'));
 }
