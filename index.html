@@ -1,4 +1,4 @@
-<title>Med Error Desk</title>
+<title>Med Error Desk</title><meta name="theme-color" content="#2E3192">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -7,9 +7,9 @@
 <style>
 /* Layout: full-bleed navy app bar with pill tabs; content in soft rounded cards; form reads as 3 numbered steps. */
 :root{
-  --bg:#F2F4F9; --surface:#FFFFFF; --surface2:#EDF0F7; --ink:#14203F; --muted:#5B6683; --line:#E0E5EF;
-  --accent:#8A1F35; --accent-ink:#FFFFFF; --accent-soft:#F8E8EC;
-  --hdr:#14224A; --hdr-ink:#FFFFFF; --hdr-mute:#A9B6DA; --hdr-pill:#22336B;
+  --bg:#F4F5FB; --surface:#FFFFFF; --surface2:#ECEDF8; --ink:#1B1D4A; --muted:#5E628C; --line:#E0E2F2;
+  --accent:#2E3192; --accent-ink:#FFFFFF; --accent-soft:#E8E9F8; --heart:#EF2D47;
+  --hdr:#FFFFFF; --hdr-ink:#2E3192; --hdr-mute:#5E628C; --hdr-pill:#ECEDF8;
   --ipd:#2F5BB7; --opd:#1D8F83;
   --c-pres:#9B2842; --c-pre:#2F5BB7; --c-disp:#C77712; --c-trans:#1D8F83; --c-admin:#7157B8;
   --good:#1E7A4C; --warn:#A8620A; --crit:#B3261E; --warn-soft:#FCEFD9; --crit-soft:#FBE0DD;
@@ -18,17 +18,17 @@
   --mono:'IBM Plex Mono',ui-monospace,Consolas,monospace;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#0C1224; --surface:#151D36; --surface2:#1E2848; --ink:#E8ECF7; --muted:#9AA6C4; --line:#28335A;
-  --accent:#EA6A86; --accent-ink:#1B0A10; --accent-soft:#3A1B26;
-  --hdr:#101A38; --hdr-pill:#1C2A56;
+  --bg:#0B0C24; --surface:#14163A; --surface2:#1E2150; --ink:#E9EAF8; --muted:#A0A4D0; --line:#2A2E66;
+  --accent:#9A9FF5; --accent-ink:#0E1030; --accent-soft:#25285A; --heart:#FF5A70;
+  --hdr:#12143A; --hdr-ink:#FFFFFF; --hdr-mute:#A9ADDB; --hdr-pill:#222664;
   --ipd:#7FA3F2; --opd:#52C5B8;
   --c-pres:#EC6F89; --c-pre:#7FA3F2; --c-disp:#EDA64B; --c-trans:#52C5B8; --c-admin:#A892EA;
   --good:#5BC38A; --warn:#E3A24B; --crit:#F07A72; --warn-soft:#3B2C14; --crit-soft:#3E1D1B;
   --shadow:0 1px 2px rgba(0,0,0,.3),0 12px 28px -16px rgba(0,0,0,.6); color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#0C1224; --surface:#151D36; --surface2:#1E2848; --ink:#E8ECF7; --muted:#9AA6C4; --line:#28335A;
-  --accent:#EA6A86; --accent-ink:#1B0A10; --accent-soft:#3A1B26;
-  --hdr:#101A38; --hdr-pill:#1C2A56;
+  --bg:#0B0C24; --surface:#14163A; --surface2:#1E2150; --ink:#E9EAF8; --muted:#A0A4D0; --line:#2A2E66;
+  --accent:#9A9FF5; --accent-ink:#0E1030; --accent-soft:#25285A; --heart:#FF5A70;
+  --hdr:#12143A; --hdr-ink:#FFFFFF; --hdr-mute:#A9ADDB; --hdr-pill:#222664;
   --ipd:#7FA3F2; --opd:#52C5B8;
   --c-pres:#EC6F89; --c-pre:#7FA3F2; --c-disp:#EDA64B; --c-trans:#52C5B8; --c-admin:#A892EA;
   --good:#5BC38A; --warn:#E3A24B; --crit:#F07A72; --warn-soft:#3B2C14; --crit-soft:#3E1D1B;
@@ -37,17 +37,20 @@
 body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.55;padding-inline:16px;-webkit-font-smoothing:antialiased}
 button,input,select,textarea{font:inherit;color:inherit}
 .wrap{max-width:1080px;margin-inline:auto}
-header.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--hdr);color:var(--hdr-ink);margin-inline:-16px;padding:12px 16px 12px;box-shadow:0 6px 20px -10px rgba(10,16,40,.5)}
+header.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--hdr);color:var(--hdr-ink);margin-inline:-16px;padding:12px 16px 12px;border-bottom:3px solid var(--heart);box-shadow:0 8px 20px -14px rgba(46,49,146,.45)}
 .bar .in{max-width:1080px;margin-inline:auto;display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:space-between}
 .brand{display:flex;align-items:center;gap:12px;min-width:0}
-.logo{width:38px;height:38px;border-radius:11px;background:var(--accent);display:grid;place-items:center;flex:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
-.logo svg{width:22px;height:22px;stroke:#fff;fill:none;stroke-width:2.4;stroke-linecap:round}
-.brand h1{font-size:18px;font-weight:700;margin:0;line-height:1.15;letter-spacing:.01em}
+.logo{width:46px;height:46px;flex:none;display:grid;place-items:center}
+.logo svg{width:46px;height:46px}
+.logo .cr{fill:#2E3192}.logo .ht{fill:#EF2D47}.logo .wt{fill:#fff}
+:root[data-theme=dark] .logo .cr{fill:#6C71E0}
+@media (prefers-color-scheme: dark){:root:not([data-theme=light]) .logo .cr{fill:#6C71E0}}
+.brand h1{font-size:18px;font-weight:700;margin:0;line-height:1.15;letter-spacing:.01em;color:var(--hdr-ink)}
 .brand span{color:var(--hdr-mute);font-size:12.5px;display:block}
 nav.tabs{display:flex;gap:4px;background:var(--hdr-pill);padding:4px;border-radius:12px;overflow-x:auto;max-width:100%}
 nav.tabs button{background:none;border:0;border-radius:9px;padding:8px 14px;font-weight:500;color:var(--hdr-mute);cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:7px;font-size:14px}
 nav.tabs button svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-nav.tabs button[aria-selected=true]{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+nav.tabs button[aria-selected=true]{background:var(--accent);color:var(--accent-ink);font-weight:600;box-shadow:0 2px 6px -2px rgba(46,49,146,.5)}
 nav.tabs button:focus-visible,.chip:focus-visible,.btn:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 main{padding-block:22px 80px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px;box-shadow:var(--shadow)}
@@ -177,7 +180,7 @@ table.rep ol{margin:2px 0 8px;padding-left:18px}
 
 <div class="wrap">
 <header class="bar"><div class="in">
-  <div class="brand"><div class="logo"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></div><div><h1>Med Error Desk</h1><span>ห้องยา · รายงาน Medication Error</span></div></div>
+  <div class="brand"><div class="logo"><svg viewBox="0 0 48 48" aria-hidden="true"><path class="cr" d="M18 2h12v16h16v12H30v16H18V30H2V18h16z"/><path class="ht" d="M24 37 12.6 25.6a7.2 7.2 0 0 1 10.2-10.2l1.2 1.2 1.2-1.2a7.2 7.2 0 0 1 10.2 10.2z"/><path class="wt" d="M22.8 21h2.4v3.4h3.4v2.4h-3.4v3.4h-2.4v-3.4h-3.4v-2.4h3.4z"/></svg></div><div><h1>Med Error Desk</h1><span>แผนกเภสัชกรรม · โรงพยาบาลจุฬารัตน์ 9 แอร์พอร์ต</span></div></div>
   <nav class="tabs" role="tablist" id="tabs">
     <button role="tab" data-t="report" aria-selected="true"><svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>แจ้ง error</button>
     <button role="tab" data-t="dash" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Dashboard</button>
