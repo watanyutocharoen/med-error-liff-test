@@ -108,7 +108,7 @@ textarea{resize:vertical}
 .upl svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .thumbs{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
 .thumb{position:relative;width:88px;height:88px;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:var(--surface2)}
-.thumb img{width:100%;height:100%;object-fit:cover;display:block;max-width:none}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block;max-width:none;cursor:zoom-in}
 .thumb button{position:absolute;top:4px;right:4px;width:24px;height:24px;border-radius:50%;border:0;background:rgba(0,0,0,.65);color:#fff;cursor:pointer;line-height:1}
 .toolbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
 .toolbar select{width:auto;min-width:200px}
@@ -393,7 +393,7 @@ function drawDyn(){
     if(k==='level')h+=`<label class="f">ระดับความเสี่ยง${need?' <span class="req">*</span>':'<small>ไม่บังคับ</small>'}</label><div class="chips" id="cLvl">${LEVELS.map(([l])=>`<button type="button" class="chip lvl ${'DEFGHI'.includes(l)?'hi':''}" data-v="${l}" aria-pressed="${F.level===l}">${l}</button>`).join('')}</div><div class="hint" id="lvlHint">${lvlText()}</div>`;
     if(k==='actor')h+=`<label class="f" for="cmAct">ผู้กระทำ error <span class="req">*</span><small>ผู้ช่วยเภสัชกร / เภสัชกร</small></label><div id="hAct"></div>`;
     if(k==='reporter')h+=`<label class="f" for="cmRep">ผู้รายงาน <span class="req">*</span></label><div id="hRep"></div>`;
-    if(k==='photos')h+=`<label class="f">รูปประกอบ<small>ไม่บังคับ</small></label><label class="upl"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>ถ่ายรูป / เลือกรูป<input id="fPhoto" type="file" accept="image/*" multiple hidden></label><div class="thumbs" id="thumbs"></div>`;
+    if(k==='photos')h+=`<label class="f">รูปประกอบ<small>ไม่บังคับ</small></label><label class="upl"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>ถ่ายรูป<input id="fCam" type="file" accept="image/*" capture="environment" hidden></label> <label class="upl"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>เลือกจากอัลบั้ม<input id="fPhoto" type="file" accept="image/*" multiple hidden></label><div class="thumbs" id="thumbs"></div>`;
   });
   h+=`<div class="grid2"><div><label class="f" for="fDate">วันที่เกิดเหตุ</label><input type="date" id="fDate" value="${esc(F.d)}"></div></div><div class="err" id="ferr" role="alert"></div><div class="actions"><button class="btn primary" id="send" type="button">ส่งรายงาน</button><button class="btn ghost" id="reset" type="button">ล้างฟอร์ม</button></div>`;
   host.innerHTML=h;
@@ -405,12 +405,28 @@ function drawDyn(){
   if($('#hAct'))combo($('#hAct'),{id:'cmAct',items:()=>[...S.lists.assistants.map(label=>({label,tag:'ผู้ช่วยเภสัชกร'})),...S.lists.pharmacists.map(label=>({label,tag:'เภสัชกร'}))],value:F.actor&&F.actor.label,onPick:it=>F.actor=it,placeholder:'พิมพ์ชื่อเพื่อค้นหา'});
   if($('#hRep'))combo($('#hRep'),{id:'cmRep',items:()=>S.lists.reporters.map(label=>({label})),value:F.reporter&&F.reporter.label,onPick:it=>{F.reporter=it;if(it){S.me.reporter=it.label;save()}},onAdd:t=>{S.lists.reporters.push(t);save();return{label:t}},placeholder:'พิมพ์ชื่อของคุณ'});
   drawThumbs();
-  const fp=$('#fPhoto');if(fp)fp.onchange=()=>{const files=[...fp.files];fp.value='';const th=$('#thumbs');if(th)th.insertAdjacentHTML('beforeend','<div class="thumb" id="thWait" style="display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--muted)">กำลังประมวลผลรูป...</div>');
+  const onPick=fp=>()=>{const files=[...fp.files];fp.value='';const th=$('#thumbs');if(th)th.insertAdjacentHTML('beforeend','<div class="thumb" id="thWait" style="display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--muted)">กำลังประมวลผลรูป...</div>');
     window._photoJob=(window._photoJob||Promise.resolve()).then(async()=>{for(const f of files){try{const b=await shrink(f);F.photos.push({id:uid(),blob:b,url:URL.createObjectURL(b)})}catch(e){toast('อ่านรูปไม่ได้ ('+(f.name||'รูป')+') ลองถ่ายหรือเลือกใหม่')}}drawThumbs()})};
+  ['#fPhoto','#fCam'].forEach(q=>{const el=$(q);if(el)el.onchange=onPick(el)});
   $('#send').onclick=submit;$('#reset').onclick=()=>{const u=F.unit,t=F.etype;F=freshF();F.unit=u;F.etype=t;drawDyn()};
 }
 const lvlText=()=>{const l=LEVELS.find(x=>x[0]===F.level);return l?`${l[0]} · ${l[1]}`:'แตะเพื่อเลือก แตะซ้ำเพื่อยกเลิก'};
-function drawThumbs(){const t=$('#thumbs');if(!t)return;t.innerHTML=F.photos.map((p,i)=>`<div class="thumb"><img src="${p.url}" alt="รูปที่ ${i+1}"><button type="button" data-i="${i}" aria-label="ลบรูป">×</button></div>`).join('');t.onclick=e=>{const b=e.target.closest('button');if(!b)return;const [p]=F.photos.splice(+b.dataset.i,1);URL.revokeObjectURL(p.url);drawThumbs()}}
+
+function zoom(urls,i=0){
+  if(!urls||!urls.length)return;
+  const d=document.createElement('div');d.setAttribute('role','dialog');d.setAttribute('aria-label','ดูรูป');
+  d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:100;display:flex;align-items:center;justify-content:center;touch-action:pan-y';
+  d.innerHTML='<img style="max-width:100%;max-height:100%;object-fit:contain" alt="รูปขยาย"><button id="zX" aria-label="ปิด" style="position:absolute;top:12px;right:12px;width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.18);color:#fff;font-size:26px;cursor:pointer">×</button>'
+   +(urls.length>1?'<button id="zP" aria-label="ก่อนหน้า" style="position:absolute;left:8px;top:50%;width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.18);color:#fff;font-size:26px;cursor:pointer">‹</button><button id="zN" aria-label="ถัดไป" style="position:absolute;right:8px;top:50%;width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.18);color:#fff;font-size:26px;cursor:pointer">›</button><span id="zC" style="position:absolute;bottom:14px;left:0;right:0;text-align:center;color:#fff;font-size:14px"></span>':'');
+  const im=d.querySelector('img');
+  const show=()=>{im.src=urls[i];const c=d.querySelector('#zC');if(c)c.textContent=(i+1)+' / '+urls.length};
+  const close=()=>{d.remove();document.removeEventListener('keydown',key)};
+  const key=e=>{if(e.key==='Escape')close();if(e.key==='ArrowRight'&&urls.length>1){i=(i+1)%urls.length;show()}if(e.key==='ArrowLeft'&&urls.length>1){i=(i-1+urls.length)%urls.length;show()}};
+  d.onclick=e=>{const id=e.target.id;if(id==='zP'){i=(i-1+urls.length)%urls.length;show()}else if(id==='zN'){i=(i+1)%urls.length;show()}else if(e.target!==im)close()};
+  let x0=null;d.ontouchstart=e=>{x0=e.touches[0].clientX};d.ontouchend=e=>{if(x0==null||urls.length<2)return;const dx=e.changedTouches[0].clientX-x0;if(Math.abs(dx)>50){i=(i+(dx<0?1:-1)+urls.length)%urls.length;show()}x0=null};
+  document.addEventListener('keydown',key);document.body.appendChild(d);show();
+}
+function drawThumbs(){const t=$('#thumbs');if(!t)return;t.innerHTML=F.photos.map((p,i)=>`<div class="thumb"><img src="${p.url}" alt="รูปที่ ${i+1}"><button type="button" data-i="${i}" aria-label="ลบรูป">×</button></div>`).join('');t.onclick=e=>{const im=e.target.closest('img');if(im){zoom(F.photos.map(p=>p.url),[...t.querySelectorAll('img')].indexOf(im));return}const b=e.target.closest('button');if(!b)return;const [p]=F.photos.splice(+b.dataset.i,1);URL.revokeObjectURL(p.url);drawThumbs()}}
 async function submit(){
   try{await window._photoJob}catch(e){}
   const et=ET[F.etype],miss=[];
@@ -494,16 +510,23 @@ function viewDash(){
   <div class="card" style="margin-top:14px"><h3>ชนิดความผิดพลาดที่พบบ่อย</h3>
    ${(()=>{const c={};rs.forEach(r=>{const k=ET[r.etype].en+' · '+r.sub;c[k]=(c[k]||0)+1});const a=sortCount(c).slice(0,8);const m=a.length?a[0][1]:1;return a.length?a.map(([k,v])=>hbar(k.split(' · ')[1],[{c:'acc',w:v/m*100}],v,k.split(' · ')[0])).join(''):'<div class="empty">ยังไม่มีข้อมูล</div>'})()}</div>
   <div class="card" style="margin-top:14px"><h3>รายการล่าสุด</h3><div class="tblw"><table class="t"><thead><tr><th>วันที่</th><th>หน่วย</th><th>ประเภท</th><th>ชนิด</th><th>ระดับ</th><th>ผู้รายงาน</th><th></th></tr></thead><tbody>
-   ${[...rs].sort((a,b)=>b.d.localeCompare(a.d)||b.id.localeCompare(a.id)).slice(0,12).map(r=>`<tr class="click" data-id="${r.id}"><td>${fmtDate(r.d)}</td><td><span class="pill ${isIPD(r.unit)?'ipd':'opd'}">${esc(r.unit)}</span></td><td>${ET[r.etype].en}</td><td>${esc(r.sub)}</td><td>${r.level?`<span class="pill ${r.level}">${r.level}</span>`:''}</td><td>${esc(r.reporter)}</td><td>${r.photos.length?'📷 '+r.photos.length:''}</td></tr>`).join('')||'<tr><td colspan="7" class="empty">ยังไม่มีข้อมูล</td></tr>'}
+   ${[...rs].sort((a,b)=>b.d.localeCompare(a.d)||b.id.localeCompare(a.id)).slice(0,12).map(r=>`<tr class="click" data-id="${r.id}"><td>${fmtDate(r.d)}</td><td><span class="pill ${isIPD(r.unit)?'ipd':'opd'}">${esc(r.unit)}</span></td><td>${ET[r.etype].en}</td><td>${esc(r.sub)}</td><td>${r.level?`<span class="pill ${r.level}">${r.level}</span>`:''}</td><td>${esc(r.reporter)}</td><td>${r.photos.length?'<span class="camb" role="button" tabindex="0" title="กดเพื่อดูรูป" style="cursor:zoom-in;padding:4px 8px;border-radius:8px;background:var(--surface2)">📷 '+r.photos.length+'</span>':''}</td></tr>`).join('')||'<tr><td colspan="7" class="empty">ยังไม่มีข้อมูล</td></tr>'}
   </tbody></table></div></div>`;
   bindDemo();$('#selM').onchange=e=>{DM=e.target.value;viewDash()};
-  $$('tr.click').forEach(tr=>tr.onclick=()=>showRec(tr.dataset.id));
+  $$('tr.click').forEach(tr=>tr.onclick=e=>{if(e.target.closest('.camb')){e.stopPropagation();openPhotos(tr.dataset.id);return}showRec(tr.dataset.id)});
 }
+async function openPhotos(id){
+  const r=S.records.find(x=>x.id===id);if(!r||!r.photos.length)return;
+  toast('กำลังโหลดรูป...');const urls=[];
+  for(const p of r.photos){const b=await ph('get',p);if(b)urls.push(URL.createObjectURL(b))}
+  if(!urls.length){toast('โหลดรูปไม่สำเร็จ');return}
+  zoom(urls,0)}
 async function showRec(id){
   const r=S.records.find(x=>x.id===id);if(!r)return;const et=ET[r.etype];
   const rows=[['วันที่',fmtDate(r.d)],['หน่วย',r.unit],['ประเภท',et.en],['ชนิด',r.sub],r.ward&&['Ward',r.ward],r.hn&&['HN',r.hn],r.doctor&&['แพทย์',r.doctor],r.actor&&['ผู้กระทำ',r.actor+(r.actorRole?' ('+r.actorRole+')':'')],r.detail&&['รายละเอียด',r.detail],r.fix&&['การแก้ไข',r.fix],r.level&&['ระดับ',r.level+' · '+(LEVELS.find(l=>l[0]===r.level)||[])[1]],['ผู้รายงาน',r.reporter]].filter(Boolean);
   const L=$('#layer');L.innerHTML=`<div class="modal" id="mod"><div class="box" role="dialog" aria-label="รายละเอียดรายงาน"><h2>รายละเอียดรายงาน</h2><dl class="dl">${rows.map(([a,b])=>`<dt>${a}</dt><dd>${esc(b)}</dd>`).join('')}</dl><div class="thumbs" id="mph"></div><div class="actions"><button class="btn" id="mclose">ปิด</button><button class="btn danger sm" id="mdel">ลบรายการนี้</button></div></div></div>`;
-  const urls=[];for(const p of r.photos){const b=await ph('get',p);if(b){const u=URL.createObjectURL(b);urls.push(u);$('#mph').insertAdjacentHTML('beforeend',`<div class="thumb" style="width:140px;height:140px"><img src="${u}" alt="รูปประกอบ"></div>`)}}
+  const urls=[];for(const p of r.photos){const b=await ph('get',p);if(b){const u=URL.createObjectURL(b);urls.push(u);$('#mph').insertAdjacentHTML('beforeend',`<div class="thumb" style="width:140px;height:140px;cursor:zoom-in"><img src="${u}" alt="รูปประกอบ" data-i="${urls.length-1}"></div>`)}}
+  $('#mph').onclick=e=>{const im=e.target.closest('img');if(im)zoom(urls,+im.dataset.i)};
   const close=()=>{urls.forEach(URL.revokeObjectURL);L.innerHTML=''};
   $('#mclose').onclick=close;$('#mod').onclick=e=>{if(e.target.id==='mod')close()};
   let armed=false;$('#mdel').onclick=async()=>{if(!armed){armed=true;$('#mdel').textContent='กดอีกครั้งเพื่อยืนยันการลบ';return}if(REMOTE){try{await api('del',{id})}catch(e){toast('ลบไม่สำเร็จ: '+e.message);return}}for(const p of r.photos)await ph('del',p);S.records=S.records.filter(x=>x.id!==id);save();close();toast('ลบรายการแล้ว');go(TAB)};
