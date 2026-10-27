@@ -273,7 +273,7 @@ function drawSubs(){const box=$('#subBox');if(!box)return;
   const gt=$('#gTabs');if(gt)gt.onclick=e=>{const b=e.target.closest('.chip');if(!b)return;F.sg=b.dataset.g;drawSubs()};
   $('#cSub').onclick=e=>{const b=e.target.closest('.chip');if(!b)return;F.sub=b.dataset.v;drawSubs()};
 }
-const FIELD_COLS={sub:[['ชนิดความผิดพลาด','sub']],hn:[['HN','hn']],doctor:[['แพทย์ผู้สั่งยา','doctor']],actor:[['ผู้กระทำ Error','actor'],['บทบาท','actorRole']],catcher:[['ผู้ที่ดักได้','catcher'],['บทบาทผู้ดัก','catcherRole']],detail:[['รายละเอียด','detail']],fix:[['การแก้ไข','fix']],level:[['ระดับความเสี่ยง','level']],reporter:[['ผู้รายงาน','reporter'],['บทบาทผู้รายงาน','reporterRole']],photos:[['รูป','photos']]};
+const FIELD_COLS={sub:[['ชนิดความผิดพลาด','sub']],hn:[['HN','hn']],doctor:[['แพทย์ผู้สั่งยา','doctor']],actor:[['ผู้กระทำ Error','actor'],['ตำแหน่ง','actorRole']],catcher:[['ผู้ที่ดักได้','catcher'],['ตำแหน่งผู้ดัก','catcherRole']],detail:[['รายละเอียด','detail']],fix:[['การแก้ไข','fix']],level:[['ระดับความเสี่ยง','level']],reporter:[['ผู้รายงาน','reporter'],['ตำแหน่งผู้รายงาน','reporterRole']],photos:[['รูป','photos']]};
 const FIELD_ORDER=['sub','hn','doctor','actor','catcher','detail','fix','level','reporter','photos'];
 function tabSchema(){const o={};ETYPES.forEach(e=>{const fs=e.fields.map(f=>f.replace('!',''));let c=[['วันที่','d'],['หน่วย','unit']];FIELD_ORDER.filter(f=>fs.includes(f)).forEach(f=>{c=c.concat(FIELD_COLS[f])});o[e.k]=c});return o}
 async function syncSchema(){if(!REMOTE)return;try{const cols=tabSchema();const t=JSON.stringify(cols);let h=5381;for(let i=0;i<t.length;i++)h=((h*33)^t.charCodeAt(i))>>>0;await api('schema',{cols,hash:String(h)})}catch(e){}}
