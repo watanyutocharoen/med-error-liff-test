@@ -184,6 +184,21 @@ table.rep ol{margin:2px 0 8px;padding-left:18px}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:12px 20px;border-radius:12px;z-index:60;font-weight:500;max-width:calc(100vw - 32px);box-shadow:0 12px 30px -10px rgba(0,0,0,.5)}
 .empty{color:var(--muted);padding:18px 0;text-align:center;font-size:14px}
 @media (prefers-reduced-motion:no-preference){.toast{animation:up .2s ease-out}@keyframes up{from{opacity:0;transform:translate(-50%,8px)}}}
+
+.formcard{max-width:720px;margin-inline:auto}
+#dyn{display:block}
+#dyn .fld>label.f:first-child{margin-top:14px}
+@media(min-width:900px){
+  .formcard{max-width:960px}
+  #dyn{display:grid;grid-template-columns:1fr 1fr;gap:0 28px;align-items:start}
+  #dyn>.fld.full,#dyn>.step,#dyn>.grid2,#dyn>.err,#dyn>.actions,#dyn>.hint,#dyn>.card{grid-column:1/-1}
+}
+@media(max-width:520px){
+  nav.tabs{display:grid;grid-template-columns:1fr 1fr;overflow:visible}
+  nav.tabs button{justify-content:center;padding:9px 8px;font-size:13px}
+  .card{padding-inline:16px}
+  .btn.primary{min-height:46px}
+}
 </style>
 
 <div class="wrap">
@@ -433,10 +448,10 @@ function bindDemo(){const b=$('#clearDemo');if(b)b.onclick=()=>{S.records=S.reco
 
 /* ============ REPORT FORM ============ */
 let F=null;
-const freshF=()=>({d:todayStr(),unit:S.me.unit||'M4',etype:'',sub:'',hn:'',doctor:'',detail:'',fix:'',level:'',actor:null,catcher:null,reporter:S.me.reporter?{label:S.me.reporter,tag:S.me.rrole||''}:null,rrole:S.me.rrole||'',sg:'',ward:'',photos:[]});
+const freshF=()=>({d:todayStr(),unit:S.me.unit||'M4',etype:'',sub:'',hn:'',doctor:'',detail:'',fix:'',level:'',actor:null,arole:'',catcher:null,reporter:S.me.reporter?{label:S.me.reporter,tag:S.me.rrole||''}:null,rrole:S.me.rrole||'',sg:'',ward:'',photos:[]});
 function viewReport(){
   if(!F)F=freshF();
-  $('#main').innerHTML=`${demoBanner()}<div class="card" style="max-width:720px;margin-inline:auto">
+  $('#main').innerHTML=`${demoBanner()}<div class="card formcard">
     <h2>แจ้ง Medication Error</h2><p class="sub">เลือกหน่วยและประเภท ฟอร์มจะแสดงเฉพาะช่องที่จำเป็น ใช้เวลาไม่ถึงนาที</p>
     <div class="step"><span class="n">1</span>หน่วยที่เกิดเหตุ</div>
     <div class="units" id="cUnit">${UNITS.map(u=>`<button type="button" class="chip unit" data-v="${esc(u)}" aria-pressed="${F.unit===u}"><b>${esc(u)}</b><small>${UNIT_NOTE[u]}</small></button>`).join('')}</div>
@@ -451,7 +466,7 @@ function viewReport(){
 function drawDyn(){
   const host=$('#dyn');if(!F.etype){host.innerHTML='<p class="hint" style="margin-top:18px">เลือกประเภท error เพื่อเริ่มกรอก</p>';return}
   const et=ET[F.etype],fs=et.fields;let h=(F.editId?'<div class="card" style="background:#fff4e5;border:1px solid #f0b866;padding:10px 12px;margin:12px 0">✏️ กำลังแก้ไขรายงานที่บันทึกไว้ <button type="button" class="btn ghost sm" id="cancelEdit">ยกเลิกการแก้ไข</button></div>':'')+'<div class="step"><span class="n">3</span>รายละเอียด</div>';
-  fs.forEach(f=>{const need=f.endsWith('!');const k=f.replace('!','');
+  fs.forEach(f=>{const mark=h.length;const need=f.endsWith('!');const k=f.replace('!','');
     if(k==='ward')h+=`<label class="f" for="fWard">Ward <span class="req">*</span></label><input type="text" id="fWard" value="${esc(F.ward)}" placeholder="เช่น 4A">`;
     if(k==='sub')h+=`<label class="f">ชนิดความผิดพลาด <span class="req">*</span></label><div id="subBox"></div>`;
     if(k==='hn')h+=`<label class="f" for="fHn">HN <span class="req">*</span></label><input type="text" id="fHn" class="mono" inputmode="numeric" value="${esc(F.hn)}" placeholder="HN ผู้ป่วย">`;
@@ -459,10 +474,11 @@ function drawDyn(){
     if(k==='detail')h+=`<label class="f" for="fDetail">${F.etype==='pre'?'รายละเอียดสั้นๆ':'รายละเอียดเหตุการณ์'}${F.etype==='pre'?'<small>ไม่บังคับ</small>':' <span class="req">*</span>'}</label><textarea id="fDetail" rows="${F.etype==='pre'?2:3}" placeholder="${F.etype==='pre'?'เช่น Metformin 850 จัดเป็น 500':'เกิดอะไรขึ้น'}">${esc(F.detail)}</textarea>`;
     if(k==='fix')h+=`<label class="f" for="fFix">การแก้ไข<small>ไม่บังคับ</small></label><textarea id="fFix" rows="2" placeholder="แก้ไขอย่างไร">${esc(F.fix)}</textarea>`;
     if(k==='level')h+=`<label class="f">ระดับความเสี่ยง${need?' <span class="req">*</span>':'<small>ไม่บังคับ</small>'}</label><div class="chips" id="cLvl">${LEVELS.map(([l])=>`<button type="button" class="chip lvl ${'DEFGHI'.includes(l)?'hi':''}" data-v="${l}" aria-pressed="${F.level===l}">${l}</button>`).join('')}</div><div class="hint" id="lvlHint">${lvlText()}</div>`;
-    if(k==='actor')h+=`<label class="f" for="cmAct">ผู้กระทำ error <span class="req">*</span><small>ผู้ช่วยเภสัชกร / เภสัชกร</small></label><div id="hAct"></div>`;
+    if(k==='actor')h+=`<label class="f">ผู้กระทำ error <span class="req">*</span></label><div class="chips" id="cARole">${['ผู้ช่วยเภสัชกร','เภสัชกร'].map(r=>`<button type="button" class="chip" data-v="${r}" aria-pressed="${F.arole===r}">${r}</button>`).join('')}</div>${F.arole?'<div id="hAct" style="margin-top:8px"></div>':'<div class="hint" style="margin-top:6px">เลือกผู้ช่วยเภสัชกรหรือเภสัชกรก่อน แล้วค่อยเลือกชื่อ</div>'}`;
     if(k==='catcher')h+=`<label class="f" for="cmCat">ผู้ที่ดักได้<small>ผู้ช่วยเภสัชกร / เภสัชกร · ไม่บังคับ</small></label><div id="hCat"></div>`;
     if(k==='reporter')h+=`<label class="f">ผู้รายงาน <span class="req">*</span></label><div class="chips" id="cRRole">${['ผู้ช่วยเภสัชกร','เภสัชกร'].map(r=>`<button type="button" class="chip" data-v="${r}" aria-pressed="${F.rrole===r}">${r}</button>`).join('')}</div>${F.rrole?'<div id="hRep" style="margin-top:8px"></div>':'<div class="hint" style="margin-top:6px">เลือกผู้ช่วยเภสัชกรหรือเภสัชกรก่อน แล้วค่อยเลือกชื่อ</div>'}`;
     if(k==='photos')h+=`<label class="f">รูปประกอบ<small>ไม่บังคับ</small></label><label class="upl"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>ถ่ายรูป<input id="fCam" type="file" accept="image/*" capture="environment" hidden></label> <label class="upl"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>เลือกจากอัลบั้ม<input id="fPhoto" type="file" accept="image/*" multiple hidden></label><div class="thumbs" id="thumbs"></div>`;
+    h=h.slice(0,mark)+'<div class="fld'+(['sub','detail','fix','photos','level'].includes(k)?' full':'')+'">'+h.slice(mark)+'</div>';
   });
   h+=`<div class="grid2"><div><label class="f" for="fDate">วันที่เกิดเหตุ</label><input type="date" id="fDate" value="${esc(F.d)}"></div></div><div class="err" id="ferr" role="alert"></div><div class="actions"><button class="btn primary" id="send" type="button">${F.editId?'บันทึกการแก้ไข':'ส่งรายงาน'}</button><button class="btn ghost" id="reset" type="button">ล้างฟอร์ม</button></div>`;
   host.innerHTML=h;
@@ -471,7 +487,9 @@ function drawDyn(){
   drawSubs();
   const cl=$('#cLvl');if(cl)cl.onclick=e=>{const b=e.target.closest('.chip');if(!b)return;F.level=F.level===b.dataset.v?'':b.dataset.v;$$('#cLvl .chip').forEach(x=>x.setAttribute('aria-pressed',x.dataset.v===F.level));$('#lvlHint').textContent=lvlText()};
   if($('#hDoc'))combo($('#hDoc'),{id:'cmDoc',items:()=>S.lists.doctors.map(label=>({label})),value:F.doctor,onPick:it=>F.doctor=it?it.label:'',onAdd:t=>{S.lists.doctors.push(t);save();return{label:t}},placeholder:'พิมพ์ชื่อแพทย์เพื่อค้นหา'});
-  if($('#hAct'))combo($('#hAct'),{id:'cmAct',items:()=>[...S.lists.assistants.map(label=>({label,tag:'ผู้ช่วยเภสัชกร'})),...S.lists.pharmacists.map(label=>({label,tag:'เภสัชกร'}))],value:F.actor&&F.actor.label,onPick:it=>F.actor=it,placeholder:'พิมพ์ชื่อเพื่อค้นหา'});
+  const actList=()=>F.arole==='เภสัชกร'?S.lists.pharmacists:S.lists.assistants;
+  const ca=$('#cARole');if(ca)ca.onclick=e=>{const b=e.target.closest('.chip');if(!b||F.arole===b.dataset.v)return;F.arole=b.dataset.v;F.actor=null;drawDyn()};
+  if($('#hAct'))combo($('#hAct'),{id:'cmAct',items:()=>actList().map(label=>({label,tag:F.arole})),value:F.actor&&F.actor.label,onPick:it=>F.actor=it,placeholder:'พิมพ์ชื่อผู้กระทำ error'});
   if($('#hCat'))combo($('#hCat'),{id:'cmCat',items:()=>[...S.lists.assistants.map(label=>({label,tag:'ผู้ช่วยเภสัชกร'})),...S.lists.pharmacists.map(label=>({label,tag:'เภสัชกร'}))],value:F.catcher&&F.catcher.label,onPick:it=>F.catcher=it,placeholder:'พิมพ์ชื่อผู้ดักได้ (ถ้ามี)'});
   const cr=$('#cRRole');if(cr)cr.onclick=e=>{const b=e.target.closest('.chip');if(!b||F.rrole===b.dataset.v)return;F.rrole=b.dataset.v;F.reporter=null;S.me.rrole=F.rrole;S.me.reporter='';save();drawDyn()};
   const repList=()=>F.rrole==='เภสัชกร'?S.lists.pharmacists:S.lists.assistants;
@@ -511,7 +529,7 @@ async function submit(){
     if(k==='doctor'&&!F.doctor)miss.push('แพทย์ผู้สั่งยา (เลือกจากรายการ)');
     if(k==='detail'&&F.etype!=='pre'&&!F.detail.trim())miss.push('รายละเอียด');
     if(f==='level!'&&!F.level)miss.push('ระดับความเสี่ยง');
-    if(k==='actor'&&!F.actor)miss.push('ผู้กระทำ error (เลือกจากรายการ)');
+    if(k==='actor'&&(!F.arole||!F.actor))miss.push('ผู้กระทำ error (เลือกผู้ช่วยเภสัชกร/เภสัชกร แล้วเลือกชื่อ)');
     if(k==='reporter'&&(!F.rrole||!F.reporter))miss.push('ผู้รายงาน (เลือกผู้ช่วยเภสัชกร/เภสัชกร แล้วเลือกชื่อ)');
   });
   if(miss.length){$('#ferr').textContent='ยังไม่ได้กรอก: '+miss.join(', ');return}
@@ -605,7 +623,7 @@ async function showRec(id){
   const urls=[];for(const p of r.photos){const b=await ph('get',p);if(b){const u=URL.createObjectURL(b);urls.push(u);$('#mph').insertAdjacentHTML('beforeend',`<div class="thumb" style="width:140px;height:140px;cursor:zoom-in"><img src="${u}" alt="รูปประกอบ" data-i="${urls.length-1}"></div>`)}}
   $('#mph').onclick=e=>{const im=e.target.closest('img');if(im)zoom(urls,+im.dataset.i)};
   const close=()=>{urls.forEach(URL.revokeObjectURL);L.innerHTML=''};
-  $('#medit').onclick=async()=>{const ph0=[];for(const pid of (r.photos||[])){const b=await ph('get',pid);if(b)ph0.push({id:uid(),blob:b,url:URL.createObjectURL(b)})}const RR=r.reporterRole||(S.lists.pharmacists.includes(r.reporter)?'เภสัชกร':S.lists.assistants.includes(r.reporter)?'ผู้ช่วยเภสัชกร':'');close();F=freshF();Object.assign(F,{editId:r.id,d:r.d,unit:r.unit,etype:r.etype,sub:r.sub,sg:grpOf(r.sub)[0]||'',hn:r.hn||'',doctor:r.doctor||'',detail:r.detail||'',fix:r.fix||'',level:r.level||'',ward:r.ward||'',rrole:RR,reporter:r.reporter&&RR?{label:r.reporter,tag:RR}:null,actor:r.actor?{label:r.actor,tag:r.actorRole||''}:null,catcher:r.catcher?{label:r.catcher,tag:r.catcherRole||''}:null,photos:ph0});go('report')};
+  $('#medit').onclick=async()=>{const ph0=[];for(const pid of (r.photos||[])){const b=await ph('get',pid);if(b)ph0.push({id:uid(),blob:b,url:URL.createObjectURL(b)})}const AR=r.actorRole||(S.lists.pharmacists.includes(r.actor)?'เภสัชกร':S.lists.assistants.includes(r.actor)?'ผู้ช่วยเภสัชกร':'');const RR=r.reporterRole||(S.lists.pharmacists.includes(r.reporter)?'เภสัชกร':S.lists.assistants.includes(r.reporter)?'ผู้ช่วยเภสัชกร':'');close();F=freshF();Object.assign(F,{editId:r.id,d:r.d,unit:r.unit,etype:r.etype,sub:r.sub,sg:grpOf(r.sub)[0]||'',hn:r.hn||'',doctor:r.doctor||'',detail:r.detail||'',fix:r.fix||'',level:r.level||'',ward:r.ward||'',rrole:RR,reporter:r.reporter&&RR?{label:r.reporter,tag:RR}:null,arole:AR,actor:r.actor&&AR?{label:r.actor,tag:AR}:null,catcher:r.catcher?{label:r.catcher,tag:r.catcherRole||''}:null,photos:ph0});go('report')};
   $('#mclose').onclick=close;$('#mod').onclick=e=>{if(e.target.id==='mod')close()};
   let armed=false;$('#mdel').onclick=async()=>{if(!armed){armed=true;$('#mdel').textContent='กดอีกครั้งเพื่อยืนยันการลบ';return}if(REMOTE){try{await api('del',{id})}catch(e){toast('ลบไม่สำเร็จ: '+e.message);return}}for(const p of r.photos)await ph('del',p);S.records=S.records.filter(x=>x.id!==id);save();close();toast('ลบรายการแล้ว');go(TAB)};
 }
