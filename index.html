@@ -592,6 +592,9 @@ function viewDash(){
   const lvl=rs.filter(r=>'CDEFGHI'.includes(r.level||'-')).length;
   const mx=Math.max(...ETYPES.map(e=>sm.types[e.k].total),1);
   const rep={};rs.forEach(r=>rep[r.reporter]=(rep[r.reporter]||0)+1);const reps=sortCount(rep),rmax=reps.length?reps[0][1]:1;
+  const RK=['pres','trans','admin'],rs3=rs.filter(r=>RK.includes(r.etype));
+  const rep3={},rep3t={};rs3.forEach(r=>{rep3[r.reporter]=(rep3[r.reporter]||0)+1;(rep3t[r.reporter]=rep3t[r.reporter]||{})[r.etype]=(rep3t[r.reporter][r.etype]||0)+1});
+  const reps3=sortCount(rep3),rmax3=reps3.length?reps3[0][1]:1;
   const um=Math.max(...UNITS.map(u=>rs.filter(r=>r.unit===u).length),1);
   const ptype=Math.max(1,...ETYPES.map(e=>sm.types[e.k].total));
   $('#main').innerHTML=`${demoBanner()}
@@ -603,6 +606,8 @@ function viewDash(){
    <div class="card"><h3>แยกตามหน่วย</h3><div class="unitcard"><div style="text-align:center">${donut(sm.ipd,sm.opd)}<div class="legend" style="justify-content:center;margin:4px 0 0"><span><i style="background:var(--ipd)"></i>IPD ${sm.ipd}</span><span><i style="background:var(--opd)"></i>OPD ${sm.opd}</span></div></div><div>${UNITS.map(u=>{const n=rs.filter(r=>r.unit===u).length;return hbar(u,[{c:isIPD(u)?'ipd':'opd',w:n/um*100}],n,UNIT_NOTE[u])}).join('')}</div></div></div>
    <div class="card"><h3>ผู้รายงานสูงสุด</h3><p class="sub" style="margin-bottom:8px">เรียงตามจำนวนรายงาน ยิ่งรายงานมาก ระบบยิ่งเห็นความเสี่ยงได้เร็ว</p>
     ${reps.length?reps.slice(0,10).map(([n,c],i)=>`<div class="rank ${i<3?'top':''}"><div class="av">${i+1}</div><div class="nm">${esc(n)}</div><div class="track"><div style="width:${c/rmax*100}%"></div></div><div class="num"><b>${c}</b> · ${Math.round(c/sm.total*100)}%</div></div>`).join(''):'<div class="empty">ยังไม่มีข้อมูล</div>'}</div>
+   <div class="card"><h3>ผู้รายงานสูงสุด · Prescribing / Transcribing / Administration</h3><p class="sub" style="margin-bottom:8px">นับเฉพาะรายงาน error 3 ประเภทนี้ (รวม ${rs3.length} รายการ)</p>
+    ${reps3.length?reps3.slice(0,10).map(([n,c],i)=>`<div class="rank ${i<3?'top':''}"><div class="av">${i+1}</div><div class="nm">${esc(n)}</div><div class="track"><div style="width:${c/rmax3*100}%"></div></div><div class="num"><b>${c}</b> · ${Math.round(c/rs3.length*100)}%</div><div style="grid-column:1/-1;margin:-6px 0 0 44px;font-size:12px;color:var(--muted)">${RK.filter(k=>rep3t[n][k]).map(k=>ET[k].code+' '+rep3t[n][k]).join(' · ')}</div></div>`).join(''):'<div class="empty">ยังไม่มีข้อมูล</div>'}</div>
    <div class="card"><h3>แนวโน้มรายเดือน</h3><div class="legend"><span><i style="background:var(--ipd)"></i>IPD</span><span><i style="background:var(--opd)"></i>OPD</span></div>${trendSvg()||'<div class="empty">ยังไม่มีข้อมูล</div>'}</div>
   </div>
   <div class="card" style="margin-top:14px"><h3>ชนิดความผิดพลาดที่พบบ่อย</h3>
