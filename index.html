@@ -398,7 +398,19 @@ async function seedDemoPhotos(){
     const b=await new Promise(res=>c.toBlob(res,'image/jpeg',.8));if(b)await ph('put',id,b);
   }}
 }
-function shrink(file,max=1280){return new Promise((res,rej)=>{
+/* รูป HEIC/HEIF (มือถือ Samsung/iPhone บางรุ่น) เบราว์เซอร์ส่วนใหญ่เปิดไม่ได้ → แปลงเป็น JPEG ก่อน */
+const isHeic=async f=>{try{const t=String.fromCharCode(...new Uint8Array(await f.slice(4,12).arrayBuffer()));return /^ftyp(heic|heix|hevc|hevx|heim|heis|mif1|msf1)/.test(t)||/\.hei[cf]$/i.test(f.name||'')||/hei[cf]/i.test(f.type||'')}catch(e){return false}};
+let _heicLib=null;
+const loadHeic=()=>_heicLib||(_heicLib=new Promise((res,rej)=>{if(window.heic2any)return res();const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js';s.onload=()=>res();s.onerror=()=>{_heicLib=null;rej(new Error('โหลดตัวแปลงรูป HEIC ไม่ได้'))};document.head.appendChild(s)}));
+async function shrink(file,max=1280){
+  try{return await shrinkImg(file,max)}catch(e){
+    if(!(await isHeic(file)))throw e;
+    await loadHeic();
+    const out=await heic2any({blob:file,toType:'image/jpeg',quality:0.85});
+    return shrinkImg(Array.isArray(out)?out[0]:out,max);
+  }
+}
+function shrinkImg(file,max=1280){return new Promise((res,rej)=>{
   const url=URL.createObjectURL(file),im=new Image();
   im.onload=()=>{const k=Math.min(1,max/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(url);c.toBlob(b=>b?res(b):rej(new Error('blob')),'image/jpeg',.78)};
   im.onerror=()=>{URL.revokeObjectURL(url);rej(new Error('img'))};im.src=url})}
