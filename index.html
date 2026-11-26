@@ -719,11 +719,27 @@ async function showIR(r){
  L.innerHTML='<div class="modal" id="mir0"><div class="box" role="dialog" aria-label="สร้าง IR"><h2>สร้าง IR — '+esc(m.label)+'</h2>'
   +'<dl class="dl"><dt>อุบัติการณ์</dt><dd>'+esc(m.cpm)+'</dd><dt>ประเด็น</dt><dd>'+esc(prob)+'</dd><dt>ผู้รับ IR</dt><dd>'+esc(recv)+'</dd><dt>สถานที่</dt><dd>'+esc(loc)+'</dd><dt>แนบรูป</dt><dd>'+photos.length+' รูป</dd></dl>'
   +(warn.length?'<div class="card" style="background:#fff4e5;border:1px solid #f0b866;padding:8px 10px;margin:6px 0">⚠️ ต้องเลือกเองในระบบ: '+esc(warn.join(', '))+'</div>':'')
-  +'<p class="sub" style="margin:8px 0">เปิดหน้า <b>write-report</b> ของระบบ IR → กด F12 → แท็บ Console → วางสคริปต์ → Enter → ตรวจ → กดบันทึก</p>'
-  +'<textarea id="irS" readonly style="width:100%;height:110px;font-family:monospace;font-size:11px"></textarea>'
-  +'<div class="actions"><button class="btn primary" id="irCopy">คัดลอกสคริปต์</button><button class="btn" id="irDone">✓ เขียน IR แล้ว</button><button class="btn" id="irClose">ปิด</button></div></div></div>';
+  +'<div class="sub" style="margin:8px 0;font-size:13px"><b>💻 คอมพิวเตอร์:</b> เปิด write-report → F12 → Console → วางสคริปต์ → Enter → ตรวจ → บันทึก</div>'
+  +'<details style="margin-bottom:8px"><summary style="cursor:pointer;color:#4b45c7;font-weight:600;font-size:13px">📱 บนมือถือ (ตั้งค่าครั้งเดียว)</summary>'
+  +'<ol style="font-size:13px;margin:8px 0;padding-left:18px;line-height:1.7">'
+  +'<li>คัดลอก "โค้ดบุ๊กมาร์ก" ด้านล่าง</li>'
+  +'<li>บุ๊กมาร์กหน้าใดก็ได้ (กดดาว) → แก้บุ๊กมาร์กนั้น ตั้งชื่อ <b>กรอก IR</b> แล้ววางโค้ดลงช่อง URL</li>'
+  +'<li>เวลาใช้งาน: กดปุ่ม <b>คัดลอก + เปิดหน้า IR</b> → พอหน้า write-report เปิด พิมพ์ "กรอก IR" ที่แถบที่อยู่ แล้วแตะบุ๊กมาร์ก → ฟอร์มกรอกให้ เหลือกดบันทึก</li>'
+  +'</ol>'
+  +'<textarea id="irBm" readonly style="width:100%;height:46px;font-family:monospace;font-size:11px"></textarea>'
+  +'<button class="btn sm" id="irBmCopy" style="margin-top:4px">คัดลอกโค้ดบุ๊กมาร์ก</button>'
+  +'<div class="sub" style="font-size:12px;margin-top:6px">URL ระบบ IR: <span id="irBaseShow"></span> · <a href="#" id="irBaseEdit">เปลี่ยน</a></div>'
+  +'</details>'
+  +'<textarea id="irS" readonly style="width:100%;height:90px;font-family:monospace;font-size:11px"></textarea>'
+  +'<div class="actions"><button class="btn primary" id="irOpen">📋 คัดลอก + เปิดหน้า IR</button><button class="btn" id="irCopy">คัดลอกสคริปต์</button><button class="btn" id="irDone">✓ เขียน IR แล้ว</button><button class="btn" id="irClose">ปิด</button></div></div></div>';
  $('#irS').value=script;
+ const irBase=()=>{try{return localStorage.getItem('irBase')||'http://202.183.201.50:8088'}catch(e){return 'http://202.183.201.50:8088'}};
+ $('#irBm').value="javascript:navigator.clipboard.readText().then(function(t){eval(t)}).catch(function(e){alert('อ่านคลิปบอร์ดไม่ได้: '+e)})";
+ $('#irBaseShow').textContent=irBase();
  $('#irCopy').onclick=async()=>{try{await navigator.clipboard.writeText(script);toast('คัดลอกสคริปต์แล้ว');}catch(e){$('#irS').select();document.execCommand('copy');toast('คัดลอกแล้ว');}};
+ $('#irBmCopy').onclick=()=>{$('#irBm').select();try{navigator.clipboard.writeText($('#irBm').value)}catch(e){document.execCommand('copy')}toast('คัดลอกโค้ดบุ๊กมาร์กแล้ว')};
+ $('#irBaseEdit').onclick=(e)=>{e.preventDefault();const v=prompt('URL ฐานของระบบ IR (เช่น http://202.183.201.50:8088 หรือ http://10.103.254.37:8088)',irBase());if(v){try{localStorage.setItem('irBase',v.trim().replace(/\/$/,''))}catch(e){}$('#irBaseShow').textContent=irBase();}};
+ $('#irOpen').onclick=()=>{try{navigator.clipboard.writeText(script);}catch(e){}window.open(irBase()+'/write-report','_blank');toast('คัดลอกสคริปต์แล้ว — เปิดหน้าเขียน IR');};
  const c=()=>{L.innerHTML='';};$('#irClose').onclick=c;$('#mir0').onclick=e=>{if(e.target.id==='mir0')c();};
  $('#irDone').onclick=async()=>{await irMark(r,true);toast('ทำเครื่องหมายว่าเขียน IR แล้ว');c();if(TAB==='ir')viewIR();};
 }
