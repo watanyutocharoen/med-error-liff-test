@@ -212,6 +212,7 @@ table.rep ol{margin:2px 0 8px;padding-left:18px}
     <button role="tab" data-t="report" aria-selected="true"><svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>แจ้ง error</button>
     <button role="tab" data-t="dash" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Dashboard</button>
     <button role="tab" data-t="month" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9zM14 3v6h6M8 13h8M8 17h5"/></svg>รายงานประจำเดือน</button>
+    <button role="tab" data-t="ir" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>เขียน IR</button>
     <button role="tab" data-t="set" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>จัดการรายชื่อ</button>
   </nav></div>
 </header>
@@ -455,8 +456,8 @@ function combo(host,o){
 
 /* ============ tabs ============ */
 let TAB='report';
-function go(t){if(REMOTE&&(t==='dash'||t==='month')){go0(t);refreshRecords().then(ch=>{if(ch&&TAB===t)go0(t)});return}go0(t)}
-function go0(t){TAB=t;$$('#tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.t===t));({report:viewReport,dash:viewDash,month:viewMonth,set:viewSettings})[t]();window.scrollTo({top:0})}
+function go(t){if(REMOTE&&(t==='dash'||t==='month'||t==='ir')){go0(t);refreshRecords().then(ch=>{if(ch&&TAB===t)go0(t)});return}go0(t)}
+function go0(t){TAB=t;$$('#tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.t===t));({report:viewReport,dash:viewDash,month:viewMonth,ir:viewIR,set:viewSettings})[t]();window.scrollTo({top:0})}
 $('#tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(b)go(b.dataset.t)});
 function demoBanner(){
   if(!S.demo)return '';
@@ -720,10 +721,43 @@ async function showIR(r){
   +(warn.length?'<div class="card" style="background:#fff4e5;border:1px solid #f0b866;padding:8px 10px;margin:6px 0">⚠️ ต้องเลือกเองในระบบ: '+esc(warn.join(', '))+'</div>':'')
   +'<p class="sub" style="margin:8px 0">เปิดหน้า <b>write-report</b> ของระบบ IR → กด F12 → แท็บ Console → วางสคริปต์ → Enter → ตรวจ → กดบันทึก</p>'
   +'<textarea id="irS" readonly style="width:100%;height:110px;font-family:monospace;font-size:11px"></textarea>'
-  +'<div class="actions"><button class="btn primary" id="irCopy">คัดลอกสคริปต์</button><button class="btn" id="irClose">ปิด</button></div></div></div>';
+  +'<div class="actions"><button class="btn primary" id="irCopy">คัดลอกสคริปต์</button><button class="btn" id="irDone">✓ เขียน IR แล้ว</button><button class="btn" id="irClose">ปิด</button></div></div></div>';
  $('#irS').value=script;
  $('#irCopy').onclick=async()=>{try{await navigator.clipboard.writeText(script);toast('คัดลอกสคริปต์แล้ว');}catch(e){$('#irS').select();document.execCommand('copy');toast('คัดลอกแล้ว');}};
  const c=()=>{L.innerHTML='';};$('#irClose').onclick=c;$('#mir0').onclick=e=>{if(e.target.id==='mir0')c();};
+ $('#irDone').onclick=()=>{irMark(r.id,true);toast('ทำเครื่องหมายว่าเขียน IR แล้ว');c();if(TAB==='ir')viewIR();};
+}
+const IR_DKEY='medErrIrDone';
+function irDoneSet(){try{return new Set(JSON.parse(localStorage.getItem(IR_DKEY)||'[]'))}catch(e){return new Set()}}
+function irMark(id,on){const s=irDoneSet();if(on)s.add(id);else s.delete(id);try{localStorage.setItem(IR_DKEY,JSON.stringify([...s]))}catch(e){}}
+let IRM='';
+function viewIR(){
+ const ms=monthsOf();if(!IRM||(IRM!=='all'&&!ms.includes(IRM)))IRM=ms[0]||'all';
+ const rs=(IRM==='all'?S.records:byMonth(IRM)).filter(r=>['pres','trans','admin'].includes(r.etype));
+ const done=irDoneSet();
+ const groups=[['pres','Prescribing — แพทย์'],['trans','Transcribing — คีย์/คัดลอก'],['admin','Administration — บริหารยา']];
+ const body=groups.map(g=>{const k=g[0],title=g[1];
+   const list=rs.filter(r=>r.etype===k).sort((a,b)=>b.d.localeCompare(a.d)||b.id.localeCompare(a.id));
+   const todo=list.filter(r=>!done.has(r.id)).length;
+   const rows=list.map(r=>{const isD=done.has(r.id);
+     const meta=[fmtDate(r.d),r.unit,r.hn?('HN '+esc(r.hn)):'',r.doctor?esc(r.doctor):''].filter(Boolean).join(' · ');
+     return '<div style="display:flex;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)'+(isD?';opacity:.6':'')+'">'
+      +'<div style="flex:1;min-width:0"><div style="font-weight:600;overflow:hidden;text-overflow:ellipsis">'+esc(r.sub)+'</div><div class="sub" style="font-size:12px">'+meta+(r.photos&&r.photos.length?(' · 📷'+r.photos.length):'')+'</div></div>'
+      +(isD?'<span class="pill" style="background:#e9f8f1;color:#1f9d6b">✓ เขียนแล้ว</span> <button class="btn sm ghost" data-un="'+r.id+'">เลิกทำเครื่องหมาย</button>'
+           :'<button class="btn sm" data-see="'+r.id+'">ดู</button> <button class="btn primary sm" data-ir="'+r.id+'">สร้าง IR</button>')
+      +'</div>';}).join('')||'<div class="empty" style="padding:10px 0">ไม่มีรายการ</div>';
+   return '<div class="card" style="margin-top:14px"><h3>'+title+' <small class="sub" style="font-weight:400">· ยังไม่เขียน '+todo+' / ทั้งหมด '+list.length+'</small></h3>'+rows+'</div>';
+ }).join('');
+ $('#main').innerHTML=demoBanner()
+  +'<div class="toolbar"><label for="selIR" style="font-weight:600">เดือน</label><select id="selIR">'+ms.map(m=>'<option value="'+m+'" '+(m===IRM?'selected':'')+'>'+fmtMonth(m)+'</option>').join('')+'<option value="all" '+(IRM==='all'?'selected':'')+'>ทุกเดือน</option></select></div>'
+  +'<div class="card" style="background:#eef1fb;border:0"><b>เขียน IR จากรายงาน</b><div class="sub" style="font-size:13px;margin-top:4px">กด "สร้าง IR" เพื่อได้สคริปต์กรอกหน้า write-report (เหลือกดบันทึก) · กด "เขียน IR แล้ว" เพื่อซ่อนรายการ (จำเฉพาะเครื่องนี้)</div></div>'
+  +body;
+ bindDemo();
+ $('#selIR').onchange=e=>{IRM=e.target.value;viewIR()};
+ $('#main').onclick=e=>{const b=e.target.closest('button');if(!b)return;
+   if(b.dataset.ir){const r=S.records.find(x=>x.id===b.dataset.ir);if(r)showIR(r);}
+   else if(b.dataset.see){showRec(b.dataset.see);}
+   else if(b.dataset.un){irMark(b.dataset.un,false);viewIR();}};
 }
 
 /* ============ MONTHLY REPORT ============ */
