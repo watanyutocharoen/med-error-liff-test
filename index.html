@@ -725,21 +725,19 @@ async function showIR(r){
  $('#irS').value=script;
  $('#irCopy').onclick=async()=>{try{await navigator.clipboard.writeText(script);toast('คัดลอกสคริปต์แล้ว');}catch(e){$('#irS').select();document.execCommand('copy');toast('คัดลอกแล้ว');}};
  const c=()=>{L.innerHTML='';};$('#irClose').onclick=c;$('#mir0').onclick=e=>{if(e.target.id==='mir0')c();};
- $('#irDone').onclick=()=>{irMark(r.id,true);toast('ทำเครื่องหมายว่าเขียน IR แล้ว');c();if(TAB==='ir')viewIR();};
+ $('#irDone').onclick=async()=>{await irMark(r,true);toast('ทำเครื่องหมายว่าเขียน IR แล้ว');c();if(TAB==='ir')viewIR();};
 }
-const IR_DKEY='medErrIrDone';
-function irDoneSet(){try{return new Set(JSON.parse(localStorage.getItem(IR_DKEY)||'[]'))}catch(e){return new Set()}}
-function irMark(id,on){const s=irDoneSet();if(on)s.add(id);else s.delete(id);try{localStorage.setItem(IR_DKEY,JSON.stringify([...s]))}catch(e){}}
+async function irMark(r,on){const ix=S.records.findIndex(x=>x.id===r.id);r.irDone=on?'1':'';if(ix>=0)S.records[ix].irDone=r.irDone;save();
+ if(REMOTE){try{await api('flag',{id:r.id,on:!!on});}catch(e){toast('บันทึกสถานะไม่สำเร็จ: '+(e.message||e));r.irDone=on?'':'1';if(ix>=0)S.records[ix].irDone=r.irDone;}}}
 let IRM='';
 function viewIR(){
  const ms=monthsOf();if(!IRM||(IRM!=='all'&&!ms.includes(IRM)))IRM=ms[0]||'all';
  const rs=(IRM==='all'?S.records:byMonth(IRM)).filter(r=>['pres','trans','admin'].includes(r.etype));
- const done=irDoneSet();
  const groups=[['pres','Prescribing — แพทย์'],['trans','Transcribing — คีย์/คัดลอก'],['admin','Administration — บริหารยา']];
  const body=groups.map(g=>{const k=g[0],title=g[1];
    const list=rs.filter(r=>r.etype===k).sort((a,b)=>b.d.localeCompare(a.d)||b.id.localeCompare(a.id));
-   const todo=list.filter(r=>!done.has(r.id)).length;
-   const rows=list.map(r=>{const isD=done.has(r.id);
+   const todo=list.filter(r=>!r.irDone).length;
+   const rows=list.map(r=>{const isD=!!r.irDone;
      const meta=[fmtDate(r.d),r.unit,r.hn?('HN '+esc(r.hn)):'',r.doctor?esc(r.doctor):''].filter(Boolean).join(' · ');
      return '<div style="display:flex;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)'+(isD?';opacity:.6':'')+'">'
       +'<div style="flex:1;min-width:0"><div style="font-weight:600;overflow:hidden;text-overflow:ellipsis">'+esc(r.sub)+'</div><div class="sub" style="font-size:12px">'+meta+(r.photos&&r.photos.length?(' · 📷'+r.photos.length):'')+'</div></div>'
@@ -750,14 +748,14 @@ function viewIR(){
  }).join('');
  $('#main').innerHTML=demoBanner()
   +'<div class="toolbar"><label for="selIR" style="font-weight:600">เดือน</label><select id="selIR">'+ms.map(m=>'<option value="'+m+'" '+(m===IRM?'selected':'')+'>'+fmtMonth(m)+'</option>').join('')+'<option value="all" '+(IRM==='all'?'selected':'')+'>ทุกเดือน</option></select></div>'
-  +'<div class="card" style="background:#eef1fb;border:0"><b>เขียน IR จากรายงาน</b><div class="sub" style="font-size:13px;margin-top:4px">กด "สร้าง IR" เพื่อได้สคริปต์กรอกหน้า write-report (เหลือกดบันทึก) · กด "เขียน IR แล้ว" เพื่อซ่อนรายการ (จำเฉพาะเครื่องนี้)</div></div>'
+  +'<div class="card" style="background:#eef1fb;border:0"><b>เขียน IR จากรายงาน</b><div class="sub" style="font-size:13px;margin-top:4px">กด "สร้าง IR" เพื่อได้สคริปต์กรอกหน้า write-report (เหลือกดบันทึก) · กด "เขียน IR แล้ว" เพื่อซ่อนรายการ (sync ทุกเครื่อง)</div></div>'
   +body;
  bindDemo();
  $('#selIR').onchange=e=>{IRM=e.target.value;viewIR()};
  $('#main').onclick=e=>{const b=e.target.closest('button');if(!b)return;
    if(b.dataset.ir){const r=S.records.find(x=>x.id===b.dataset.ir);if(r)showIR(r);}
    else if(b.dataset.see){showRec(b.dataset.see);}
-   else if(b.dataset.un){irMark(b.dataset.un,false);viewIR();}};
+   else if(b.dataset.un){const r=S.records.find(x=>x.id===b.dataset.un);if(r)irMark(r,false).then(()=>viewIR());}};
 }
 
 /* ============ MONTHLY REPORT ============ */
